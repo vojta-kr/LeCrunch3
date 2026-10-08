@@ -203,20 +203,24 @@ class LeCrunch3(object):
         '''
         Return a message from the scope.
         '''
-        reply = b''
+        chunks = []
         while True:
             header = b''
             while len(header) < 8:
                 header += self.sock.recv(8 - len(header))
             operation, headerver, seqnum, spare, totalbytes = \
                 struct.unpack(headerformat, header)
-            buffer = b''
-            while len(buffer) < totalbytes:
-                buffer += self.sock.recv(totalbytes - len(buffer))
-            reply += buffer
+            # recv_into a preallocated buffer: `buffer += chunk` is quadratic in the reply size
+            buffer = bytearray(totalbytes)
+            view = memoryview(buffer)
+            got = 0
+            while got < totalbytes:
+                n = self.sock.recv_into(view[got:], totalbytes - got)
+                got += n
+            chunks.append(buffer)
             if operation % 2:
                 break
-        return reply
+        return b''.join(chunks)
 
     def check_last_command(self):
         """
