@@ -163,9 +163,12 @@ class LeCrunch3(object):
     '''
     A class for triggering and fetching waveforms from a LeCroy oscilloscope.
     '''
-    def __init__(self,  host, port=1861, timeout=5.0):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((host, port))
+    def __init__(self,  host, port=1861, timeout=5.0, sock=None):
+        # sock: already connected (host and port are then ignored), for a caller that
+        # handles a failed connect differently from a failed handshake
+        if sock is None:
+            sock = socket.create_connection((host, port), timeout=timeout)
+        self.sock = sock
         self.sock.settimeout(timeout)
         self.clear()
         self.send('comm_header short')
@@ -174,7 +177,10 @@ class LeCrunch3(object):
         self.check_last_command()
 
     def __del__(self):
-        self.sock.close()
+        # no sock if the connect failed; __del__ still runs on the half-built object
+        sock = getattr(self, 'sock', None)
+        if sock is not None:
+            sock.close()
 
     def clear(self, timeout=0.5):
         '''
