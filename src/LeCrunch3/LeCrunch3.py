@@ -357,8 +357,9 @@ class LeCrunch3(object):
         trigger_times = np.zeros(trigger_count, 'f8')
         trigger_offsets = np.zeros(trigger_count, 'f8')
         for i in range(trigger_count):
-            trigger_times[i] = np.frombuffer(data.read(typeSize), 'f8', 1)
-            trigger_offsets[i] = np.frombuffer(data.read(typeSize), 'f8', 1)
+            # [0]: a shape-(1,) array no longer converts to a scalar (NumPy >= 2.4)
+            trigger_times[i] = np.frombuffer(data.read(typeSize), 'f8', 1)[0]
+            trigger_offsets[i] = np.frombuffer(data.read(typeSize), 'f8', 1)[0]
 
         # Read waveform
         # TODO: implement dat2 concat
