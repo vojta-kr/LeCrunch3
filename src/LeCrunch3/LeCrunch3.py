@@ -185,7 +185,9 @@ class LeCrunch3(object):
         self.sock.settimeout(timeout)
         try:
             while True:
-                self.sock.recv(4096)
+                if not self.sock.recv(4096):
+                    # b'' means the peer closed the connection, not an empty queue
+                    raise ConnectionError('connection closed by the scope')
         except socket.timeout:
             pass
         self.sock.settimeout(t)
@@ -207,7 +209,10 @@ class LeCrunch3(object):
         while True:
             header = b''
             while len(header) < 8:
-                header += self.sock.recv(8 - len(header))
+                chunk = self.sock.recv(8 - len(header))
+                if not chunk:
+                    raise ConnectionError('connection closed by the scope')
+                header += chunk
             operation, headerver, seqnum, spare, totalbytes = \
                 struct.unpack(headerformat, header)
             # recv_into a preallocated buffer: `buffer += chunk` is quadratic in the reply size
@@ -216,6 +221,8 @@ class LeCrunch3(object):
             got = 0
             while got < totalbytes:
                 n = self.sock.recv_into(view[got:], totalbytes - got)
+                if n == 0:
+                    raise ConnectionError('connection closed by the scope mid-reply')
                 got += n
             chunks.append(buffer)
             if operation % 2:
