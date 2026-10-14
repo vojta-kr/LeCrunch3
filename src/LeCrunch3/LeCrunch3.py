@@ -207,18 +207,12 @@ class LeCrunch3(object):
         while True:
             header = b''
             while len(header) < 8:
-                try:
-                    header += self.sock.recv(8 - len(header))
-                except socket.timeout:
-                    continue
+                header += self.sock.recv(8 - len(header))
             operation, headerver, seqnum, spare, totalbytes = \
                 struct.unpack(headerformat, header)
             buffer = b''
             while len(buffer) < totalbytes:
-                try:
-                    buffer += self.sock.recv(totalbytes - len(buffer))
-                except socket.timeout:
-                    continue
+                buffer += self.sock.recv(totalbytes - len(buffer))
             reply += buffer
             if operation % 2:
                 break
